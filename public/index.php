@@ -1,49 +1,54 @@
 <?php
 
-// Debugging (Bisa dimatikan nanti)
+// --- 1. KONFIGURASI SYSTEM ---
+// Menampilkan error (Bagus untuk demo/dev, matikan saat production asli)
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+// Load Composer
 require_once __DIR__ . '/../vendor/autoload.php';
 
-// --- BAGIAN INI YANG KITA PERKUAT ---
+// Load .env (Hanya berjalan di Localhost)
+// Di Vercel, ini akan dilewati karena file .env tidak di-upload
 try {
-    // Coba load .env (untuk Localhost)
     $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
     $dotenv->load();
 } catch (\Exception $e) {
-    // Kalau error (file .env gak ada), DIAM SAJA (Ignore).
-    // Karena di Vercel kita pakai Environment Variables dari Settings.
+    // Ignore error jika di Vercel
 }
-// ------------------------------------
 
+// --- 2. IMPORT CONTROLLERS ---
+use App\Controllers\HomeController;
 use App\Controllers\AuthController;
+use App\Controllers\GoogleAuthController;
 use App\Controllers\DashboardController;
 use App\Controllers\RoomController;
 use App\Controllers\UnitController;
 use App\Controllers\BookingController;
-use App\Controllers\GoogleAuthController;
-use App\Controllers\HomeController;
 use App\Controllers\PaymentController;
 
+// --- 3. ROUTING SYSTEM ---
 $action = $_GET['action'] ?? 'home';
 
 switch ($action) {
+    
+    // === HALAMAN DEPAN (LANDING PAGE) ===
     case 'home':
         $home = new HomeController();
         $home->index(); 
         break;
 
+    // === AUTENTIKASI (LOGIN/LOGOUT) ===
     case 'login':
         $auth = new AuthController();
         $auth->index(); 
         break;
 
     case 'login_process':
-    $auth = new AuthController();
-    $auth->loginProcess();
-    break;
+        $auth = new AuthController();
+        $auth->loginProcess();
+        break;
 
     case 'login_google':
         $g = new GoogleAuthController();
@@ -60,12 +65,13 @@ switch ($action) {
         $auth->logout();
         break;
 
+    // === DASHBOARD UTAMA ===
     case 'dashboard':
         $dashboard = new DashboardController();
         $dashboard->index();
         break;
 
-    // --- Rooms (Admin) ---
+    // === MODUL ADMIN: TIPE KAMAR (CRUD) ===
     case 'rooms': $c = new RoomController(); $c->index(); break;
     case 'rooms_create': $c = new RoomController(); $c->create(); break;
     case 'rooms_store': $c = new RoomController(); $c->store(); break;
@@ -73,122 +79,35 @@ switch ($action) {
     case 'rooms_update': $c = new RoomController(); $c->updateProcess(); break;
     case 'rooms_delete': $c = new RoomController(); $c->delete(); break;
 
-    // --- Units (Admin) ---
+    // === MODUL ADMIN: UNIT FISIK/STOK (CRUD) ===
     case 'units': $u = new UnitController(); $u->index(); break;
     case 'units_create': $u = new UnitController(); $u->create(); break;
     case 'units_store': $u = new UnitController(); $u->store(); break;
     case 'units_toggle': $u = new UnitController(); $u->toggle(); break;
     case 'units_delete': $u = new UnitController(); $u->delete(); break;
 
-    // --- Booking (Customer & Admin) ---
+    // === MODUL PELANGGAN: BOOKING ===
     case 'booking': $b = new BookingController(); $b->index(); break;
     case 'booking_search': $b = new BookingController(); $b->search(); break;
     case 'booking_process': $b = new BookingController(); $b->book(); break;
     case 'my_bookings': $b = new BookingController(); $b->history(); break;
     case 'booking_invoice': $b = new BookingController(); $b->downloadInvoice(); break;
     
-    // Laporan Admin
+    // === MODUL ADMIN: LAPORAN ===
     case 'admin_bookings': $b = new BookingController(); $b->adminList(); break;
     case 'admin_booking_delete': $b = new BookingController(); $b->delete(); break;
 
-    // --- Payment ---
+    // === SISTEM PEMBAYARAN ===
     case 'payment': $p = new PaymentController(); $p->index(); break;
     case 'payment_process': $p = new PaymentController(); $p->process(); break;
 
+    // === 404 NOT FOUND ===
     default:
-        echo "404 Halaman Tidak Ditemukan";
-        break;
-
-    case 'fix_admin':
-        try {
-            // Buka koneksi manual
-            $db = (new \App\Config\Database())->getConnection();
-            
-            // 1. Hapus Admin yang bermasalah
-            $stmt = $db->prepare("DELETE FROM users WHERE email = 'admin@hotel48.com'");
-            $stmt->execute();
-            
-            // 2. Buat Admin Baru dengan Password '123' (Hash otomatis oleh server)
-            $passwordHash = password_hash('123', PASSWORD_BCRYPT);
-            
-            $sql = "INSERT INTO users (name, email, password, role) 
-                    VALUES ('Super Admin', 'admin@hotel48.com', :pass, 'admin')";
-            
-            $stmt = $db->prepare($sql);
-            $stmt->execute(['pass' => $passwordHash]);
-            
-            echo "<h1 style='color:green'>✅ PERBAIKAN SUKSES!</h1>";
-            echo "Admin berhasil di-reset.<br>";
-            echo "Email: <b>admin@hotel48.com</b><br>";
-            echo "Password: <b>123</b><br><br>";
-            echo "<a href='index.php?action=login'>Klik disini untuk Login</a>";
-            
-        } catch (Exception $e) {
-            echo "Gagal: " . $e->getMessage();
-        }
-        exit; // Stop script disini
-        break;
-
-        case 'db_check':
-        try {
-            $dbClass = new \App\Config\Database();
-            $conn = $dbClass->getConnection();
-            
-            echo "<h1>🕵️‍♂️ INSPEKSI DATABASE VERCEL</h1>";
-            
-            // 1. Cek Nama Database Aktif
-            $stmt = $conn->query("SELECT DATABASE()");
-            $activeDB = $stmt->fetchColumn();
-            echo "Database yang aktif saat ini: <h2 style='color:blue'>" . $activeDB . "</h2>";
-            
-            // 2. Cek Settingan ENV
-            echo "Settingan Vercel (DB_NAME): <b>" . getenv('DB_NAME') . "</b><br><hr>";
-            
-            // 3. Cek Isi Tabel Users
-            echo "<h3>Daftar User di dalam tabel 'users':</h3>";
-            $stmt = $conn->query("SELECT id, name, email, role, password FROM users");
-            $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            if (count($users) > 0) {
-                echo "<table border='1' cellpadding='10' style='border-collapse:collapse'>";
-                echo "<tr style='background:#eee'><th>ID</th><th>Email</th><th>Role</th><th>Password Hash</th></tr>";
-                foreach ($users as $u) {
-                    echo "<tr>";
-                    echo "<td>" . $u['id'] . "</td>";
-                    echo "<td>" . $u['email'] . "</td>"; // Cek apakah ada spasi?
-                    echo "<td>" . $u['role'] . "</td>";
-                    echo "<td>" . substr($u['password'], 0, 15) . "...</td>"; 
-                    echo "</tr>";
-                }
-                echo "</table>";
-            } else {
-                echo "<h2 style='color:red'>❌ TABEL USERS KOSONG MELOMPONG!</h2>";
-                echo "Artinya Vercel konek ke database yang salah, atau datanya belum masuk.";
-            }
-            
-        } catch (Exception $e) {
-            echo "Error: " . $e->getMessage();
-        }
-        exit;
-        break;
-
-        case 'reset_admin_final':
-        $db = (new \App\Config\Database())->getConnection();
-        
-        // 1. Hapus dulu biar bersih
-        $db->query("DELETE FROM users WHERE email = 'admin@hotel48.com'");
-        
-        // 2. Biarkan Server Vercel yang meng-hash password '123'
-        // Ini MENJAMIN hash-nya pasti cocok dengan sistem server
-        $pass = password_hash('adminrahasia', PASSWORD_BCRYPT);
-        
-        // 3. Masukkan data baru
-        $stmt = $db->prepare("INSERT INTO users (name, email, password, role) VALUES ('Super Admin', 'admin@hotel48.com', :p, 'admin')");
-        $stmt->execute(['p' => $pass]);
-        
-        echo "<h1 style='color:green; text-align:center;'>✅ AKUN ADMIN BERHASIL DI-RESET!</h1>";
-        echo "<center>Email: <b>admin@hotel48.com</b><br>Password: <b>123</b><br><br>";
-        echo "<a href='index.php?action=login'>LOGIN SEKARANG</a></center>";
-        exit; 
+        http_response_code(404);
+        echo "<div style='text-align:center; margin-top:50px;'>";
+        echo "<h1>404</h1>";
+        echo "<p>Halaman yang Anda cari tidak ditemukan.</p>";
+        echo "<a href='index.php'>Kembali ke Beranda</a>";
+        echo "</div>";
         break;
 }
