@@ -84,4 +84,33 @@ class Booking
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
+
+    public function getDetailById($id)
+    {
+        $query = "SELECT b.*, u.name as guest_name, u.email, r.room_number, rt.type_name, rt.price 
+                  FROM bookings b
+                  JOIN users u ON b.user_id = u.id
+                  JOIN rooms r ON b.room_id = r.id
+                  JOIN room_types rt ON r.room_type_id = rt.id
+                  WHERE b.id = :id LIMIT 1";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":id", $id);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_OBJ);
+    }
+
+    public function getAllForAdmin()
+    {
+        $query = "SELECT b.*, u.name as guest_name, r.room_number, rt.type_name 
+                  FROM bookings b
+                  JOIN users u ON b.user_id = u.id
+                  JOIN rooms r ON b.room_id = r.id
+                  JOIN room_types rt ON r.room_type_id = rt.id
+                  ORDER BY b.created_at DESC";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
 }

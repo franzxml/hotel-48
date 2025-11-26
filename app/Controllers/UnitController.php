@@ -1,61 +1,79 @@
 <?php
 
-namespace App\Controllers;
+namespace App\Controllers; // <--- Namespace Controller
 
-use PDO;
+use App\Config\Database;
+use App\Models\Unit;      // <--- Panggil Model yang baru kita benerin di atas
+use App\Models\RoomType;
 
-class Unit
+class UnitController      // <--- Nama Class harus UnitController
 {
-    private $conn;
-    private $table = "rooms"; // Nama tabel fisik kamar
+    private $db;
+    private $unit;
+    private $roomType;
 
-    public $id;
-    public $room_type_id;
-    public $room_number;
-    public $status;
-
-    public function __construct($db)
+    public function __construct()
     {
-        $this->conn = $db;
-    }
-
-    // 1. READ ALL (Dengan JOIN ke room_types)
-    public function getAll()
-    {
-        // Kita ambil nama tipe kamar juga (r.type_name)
-        $query = "SELECT u.id, u.room_number, u.status, r.type_name 
-                  FROM " . $this->table . " u
-                  JOIN room_types r ON u.room_type_id = r.id
-                  ORDER BY u.room_number ASC";
+        if (session_status() == PHP_SESSION_NONE) session_start();
         
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        // Cek Login Admin
+        if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+            header("Location: index.php?action=login");
+            exit();
+        }
+
+        $database = new Database();
+        $this->db = $database->getConnection();
+        $this->unit = new Unit($this->db);
+        $this->roomType = new RoomType($this->db);
     }
 
-    // 2. CREATE
+    public function index()
+    {
+        $units = $this->unit->getAll();
+        $data = ['title' => 'Kelola Unit Kamar', 'units' => $units];
+        require_once __DIR__ . '/../Views/admin/units/index.php';
+    }
+
     public function create()
     {
-        $query = "INSERT INTO " . $this->table . " SET room_type_id=:room_type_id, room_number=:room_number";
-        $stmt = $this->conn->prepare($query);
-
-        $this->room_number = htmlspecialchars(strip_tags($this->room_number));
+        $types = $this->roomType->getAll();
         
-        $stmt->bindParam(":room_type_id", $this->room_type_id);
-        $stmt->bindParam(":room_number", $this->room_number);
-
-        if ($stmt->execute()) {
-            return true;
-        }
-        return false;
+        $data = [
+            'title' => 'Tambah Nomor Kamar',
+            'types' => $types
+        ];
+        require_once __DIR__ . '/../Views/admin/units/create.php';
     }
 
-    // 3. DELETE
-    public function delete($id)
+    public function store()
     {
-        $query = "DELETE FROM " . $this->table . " WHERE id = :id";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":id", $id);
-        return $stmt->execute();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->unit->room_number = $_POST['room_number'];
+            $this->unit->room_type_id = $_POST['room_type_id'];
+
+            if ($this->unit->create()) {
+                header("Location: index.php?action=units");
+            } else {
+                echo "Gagal. Mungkin nomor kamar sudah ada?";
+            }
+        }
+    }
+
+    public function delete()
+    {
+        $id = $_GET['id'] ?? null;
+        if ($id) $this->unit->delete($id);
+        header("Location: index.php?action=units");
+    }
+
+    public function toggle()
+    {
+        $id = $_GET['id'] ?? null;
+        if ($id) {
+            $this->unit->toggleStatus($id);
+        }
+        // Balik lagi ke halaman tabel
+        header("Location: index.php?action=units");
     }
 }

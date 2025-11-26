@@ -16,7 +16,8 @@ use App\Controllers\RoomController;
 use App\Controllers\UnitController;
 use App\Controllers\BookingController;
 use App\Controllers\GoogleAuthController;
-use App\Controllers\HomeController; 
+use App\Controllers\HomeController;
+use App\Controllers\PaymentController; 
 
 $action = $_GET['action'] ?? 'home';
 
@@ -44,6 +45,30 @@ switch ($action) {
     case 'dashboard':
         $dashboard = new DashboardController();
         $dashboard->index();
+        break;
+    case 'payment':
+    $p = new PaymentController();
+    $p->index();
+    break;
+
+    case 'booking_invoice':
+        $b = new BookingController();
+        $b->downloadInvoice();
+        break;
+
+    case 'payment_process':
+    $p = new PaymentController();
+    $p->process();
+    break;
+
+    case 'admin_bookings':
+        $b = new BookingController();
+        $b->adminList();
+        break;
+
+    case 'units_toggle':
+        $u = new UnitController();
+        $u->toggle();
         break;
 
     // --- Rooms & Units (Admin) ---

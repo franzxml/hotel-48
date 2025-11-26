@@ -66,8 +66,7 @@
                                     <h1 class="text-warning"><i class="bi bi-journal-text"></i></h1>
                                     <h5 class="card-title mt-2">3. Laporan Pesanan</h5>
                                     <p class="card-text small text-muted">Lihat daftar tamu yang booking dan status pembayarannya.</p>
-                                    <a href="#" class="btn btn-warning w-100">Lihat Data</a>
-                                </div>
+                                    <a href="index.php?action=admin_bookings" class="btn btn-warning w-100">Lihat Data</a>                                </div>
                             </div>
                         </div>
                     </div>
