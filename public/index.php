@@ -102,4 +102,34 @@ switch ($action) {
     default:
         echo "404 Halaman Tidak Ditemukan";
         break;
+
+    case 'fix_admin':
+        try {
+            // Buka koneksi manual
+            $db = (new \App\Config\Database())->getConnection();
+            
+            // 1. Hapus Admin yang bermasalah
+            $stmt = $db->prepare("DELETE FROM users WHERE email = 'admin@hotel48.com'");
+            $stmt->execute();
+            
+            // 2. Buat Admin Baru dengan Password '123' (Hash otomatis oleh server)
+            $passwordHash = password_hash('123', PASSWORD_BCRYPT);
+            
+            $sql = "INSERT INTO users (name, email, password, role) 
+                    VALUES ('Super Admin', 'admin@hotel48.com', :pass, 'admin')";
+            
+            $stmt = $db->prepare($sql);
+            $stmt->execute(['pass' => $passwordHash]);
+            
+            echo "<h1 style='color:green'>✅ PERBAIKAN SUKSES!</h1>";
+            echo "Admin berhasil di-reset.<br>";
+            echo "Email: <b>admin@hotel48.com</b><br>";
+            echo "Password: <b>123</b><br><br>";
+            echo "<a href='index.php?action=login'>Klik disini untuk Login</a>";
+            
+        } catch (Exception $e) {
+            echo "Gagal: " . $e->getMessage();
+        }
+        exit; // Stop script disini
+        break;
 }
