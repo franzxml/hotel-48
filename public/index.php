@@ -132,4 +132,47 @@ switch ($action) {
         }
         exit; // Stop script disini
         break;
+
+        case 'db_check':
+        try {
+            $dbClass = new \App\Config\Database();
+            $conn = $dbClass->getConnection();
+            
+            echo "<h1>🕵️‍♂️ INSPEKSI DATABASE VERCEL</h1>";
+            
+            // 1. Cek Nama Database Aktif
+            $stmt = $conn->query("SELECT DATABASE()");
+            $activeDB = $stmt->fetchColumn();
+            echo "Database yang aktif saat ini: <h2 style='color:blue'>" . $activeDB . "</h2>";
+            
+            // 2. Cek Settingan ENV
+            echo "Settingan Vercel (DB_NAME): <b>" . getenv('DB_NAME') . "</b><br><hr>";
+            
+            // 3. Cek Isi Tabel Users
+            echo "<h3>Daftar User di dalam tabel 'users':</h3>";
+            $stmt = $conn->query("SELECT id, name, email, role, password FROM users");
+            $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (count($users) > 0) {
+                echo "<table border='1' cellpadding='10' style='border-collapse:collapse'>";
+                echo "<tr style='background:#eee'><th>ID</th><th>Email</th><th>Role</th><th>Password Hash</th></tr>";
+                foreach ($users as $u) {
+                    echo "<tr>";
+                    echo "<td>" . $u['id'] . "</td>";
+                    echo "<td>" . $u['email'] . "</td>"; // Cek apakah ada spasi?
+                    echo "<td>" . $u['role'] . "</td>";
+                    echo "<td>" . substr($u['password'], 0, 15) . "...</td>"; 
+                    echo "</tr>";
+                }
+                echo "</table>";
+            } else {
+                echo "<h2 style='color:red'>❌ TABEL USERS KOSONG MELOMPONG!</h2>";
+                echo "Artinya Vercel konek ke database yang salah, atau datanya belum masuk.";
+            }
+            
+        } catch (Exception $e) {
+            echo "Error: " . $e->getMessage();
+        }
+        exit;
+        break;
 }
