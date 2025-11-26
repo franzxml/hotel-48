@@ -54,28 +54,25 @@ class User
 
     public function login($email, $password)
     {
-        // 1. Query cari user berdasarkan email
-        $query = "SELECT * FROM " . $this->table_name . " WHERE email = :email LIMIT 1";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":email", $email);
-        $stmt->execute();
+        try {
+            $query = "SELECT * FROM " . $this->table_name . " WHERE email = :email LIMIT 1";
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":email", $email);
+            $stmt->execute();
 
-        // 2. Cek apakah user ditemukan
-        if ($stmt->rowCount() > 0) {
-            $row = $stmt->fetch(); // Ambil data user dari DB
-
-            // 3. Verifikasi Password (Hash vs Plaintext)
-            // password_verify() adalah pasangan dari password_hash()
-            if (password_verify($password, $row->password)) {
-                
-                // Isi properti object dengan data dari DB (biar bisa dipakai controller)
-                $this->id = $row->id;
-                $this->name = $row->name;
-                $this->role = $row->role;
-                return true; // Login Sukses
+            if ($stmt->rowCount() > 0) {
+                $row = $stmt->fetch();
+                if (password_verify($password, $row->password)) {
+                    $this->id = $row->id;
+                    $this->name = $row->name;
+                    $this->role = $row->role;
+                    return true;
+                }
             }
+            return false;
+        } catch (\PDOException $e) {
+            // INI PENTING: Tampilkan error database ke layar
+            die("❌ Error Query SQL di User Model: " . $e->getMessage());
         }
-
-        return false; // Email gak ada atau Password salah
     }
 }
