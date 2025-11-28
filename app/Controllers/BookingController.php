@@ -148,29 +148,115 @@ class BookingController
         }
 
         $html = '
-        <html>
+        <html lang="id">
         <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Bukti Reservasi - Hotel 48</title>
+            <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
             <style>
-                body { font-family: sans-serif; }
-                .header { text-align: center; margin-bottom: 20px; }
-                .box { border: 1px solid #333; padding: 20px; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th { background-color: #f2f2f2; }
-                .status { font-weight: bold; color: green; text-transform: uppercase; }
+                body {
+                    font-family: Roboto, sans-serif;
+                    margin: 0;
+                    padding: 20px;
+                    background-color: #f4f4f4;
+                    color: #333;
+                }
+                .header {
+                    text-align: center;
+                    background-color: #004080; /* Tema biru gelap */
+                    color: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    margin-bottom: 30px;
+                }
+                .header h1 {
+                    margin: 0;
+                    font-size: 2.5em;
+                    font-weight: 700;
+                }
+                .header p {
+                    margin: 5px 0 0;
+                    font-size: 1.2em;
+                }
+                .logo {
+                    width: 100px;
+                    height: auto;
+                    margin-bottom: 10px;
+                }
+                .box {
+                    background-color: white;
+                    border: 1px solid #ddd;
+                    border-radius: 8px;
+                    padding: 30px;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                    max-width: 800px;
+                    margin: 0 auto;
+                }
+                .box p {
+                    margin: 10px 0;
+                    font-size: 1em;
+                }
+                .status {
+                    font-weight: bold;
+                    text-transform: uppercase;
+                    padding: 5px 10px;
+                    border-radius: 4px;
+                }
+                .status.success { color: white; background-color: #28a745; }
+                .status.failed { color: white; background-color: #dc3545; }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 20px;
+                    font-size: 0.9em;
+                }
+                th, td {
+                    border: 1px solid #ddd;
+                    padding: 12px;
+                    text-align: left;
+                }
+                th {
+                    background-color: #004080;
+                    color: white;
+                    font-weight: 700;
+                }
+                .total {
+                    text-align: right;
+                    font-size: 1.5em;
+                    font-weight: 700;
+                    color: #004080;
+                    margin-top: 20px;
+                    border-top: 2px solid #ddd;
+                    padding-top: 10px;
+                }
+                .footer {
+                    text-align: center;
+                    font-size: 0.8em;
+                    color: #666;
+                    margin-top: 40px;
+                    padding: 20px;
+                    background-color: #f9f9f9;
+                    border-radius: 8px;
+                }
+                .footer p {
+                    margin: 5px 0;
+                }
             </style>
         </head>
         <body>
             <div class="header">
+                <!-- Placeholder untuk logo; ganti dengan <img src="path/to/logo.png" alt="Logo Hotel 48" class="logo"> -->
                 <h1>HOTEL 48</h1>
                 <p>Bukti Reservasi Kamar</p>
             </div>
 
             <div class="box">
                 <p><strong>No. Pesanan:</strong> #' . $booking->id . '</p>
+                <p><strong>Tanggal Pemesanan:</strong> ' . date('d M Y') . '</p> <!-- Tambahan tanggal -->
                 <p><strong>Nama Tamu:</strong> ' . $booking->guest_name . '</p>
                 <p><strong>Email:</strong> ' . $booking->email . '</p>
-                <p><strong>Status Pembayaran:</strong> <span class="status">' . $booking->status . '</span></p>
+                <p><strong>Status Pembayaran:</strong> <span class="status ' . ($booking->status == 'paid' ? 'success' : 'failed') . '">' . $booking->status . '</span></p>
                 
                 <table>
                     <tr>
@@ -187,15 +273,16 @@ class BookingController
                     </tr>
                 </table>
 
-                <h3 style="text-align:right; margin-top:20px;">
+                <div class="total">
                     Total: Rp ' . number_format($booking->total_price) . '
-                </h3>
+                </div>
             </div>
             
-            <p style="text-align:center; font-size: 12px; margin-top: 50px;">
-                Terima kasih telah memilih Hotel 48.<br>
-                Simpan dokumen ini sebagai bukti saat Check-in.
-            </p>
+            <div class="footer">
+                <p>Terima kasih telah memilih Hotel 48. Simpan dokumen ini sebagai bukti saat Check-in.</p>
+                <p>Alamat: Jl. Contoh No. 48, Kota, Indonesia | Telepon: (021) 123-4567 | Email: info@hotel48.com</p>
+                <p>&copy; 2023 Hotel 48. Semua hak dilindungi.</p>
+            </div>
         </body>
         </html>';
 
