@@ -39,3 +39,6 @@ Ikuti langkah-langkah ini untuk menjalankan proyek di komputer lokal:
 Buka terminal di dalam folder proyek, lalu jalankan perintah:
 ```bash
 composer install
+
+###link laporan
+https://docs.google.com/document/d/1H1Jh9jgHLIjUYAZOdk39t9t9U3u3YM0vVqLDMajf4mI/edit?tab=t.0
