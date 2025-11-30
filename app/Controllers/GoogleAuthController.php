@@ -15,9 +15,18 @@ class GoogleAuthController
     {
         $this->client = new Client();
         
-        $clientId = getenv('GOOGLE_CLIENT_ID') ?: $_ENV['GOOGLE_CLIENT_ID'];
-        $clientSecret = getenv('GOOGLE_CLIENT_SECRET') ?: $_ENV['GOOGLE_CLIENT_SECRET'];
-        $redirectUri = getenv('GOOGLE_REDIRECT_URI') ?: $_ENV['GOOGLE_REDIRECT_URI'];
+        // --- 1. AMBIL KREDENSIAL DENGAN AMAN (Anti-Warning) ---
+        // Prioritaskan $_ENV, jika tidak ada cek getenv(), jika tidak ada null
+        $clientId     = $_ENV['GOOGLE_CLIENT_ID'] ?? getenv('GOOGLE_CLIENT_ID') ?? null;
+        $clientSecret = $_ENV['GOOGLE_CLIENT_SECRET'] ?? getenv('GOOGLE_CLIENT_SECRET') ?? null;
+        $redirectUri  = $_ENV['GOOGLE_REDIRECT_URI'] ?? getenv('GOOGLE_REDIRECT_URI') ?? null;
+
+        // --- 2. VALIDASI MANUAL (Agar error mudah dibaca) ---
+        if (!$clientId || !$clientSecret || !$redirectUri) {
+            // Tampilkan pesan error bersih, bukan stack trace
+            http_response_code(500);
+            die("Error Konfigurasi: Google Client ID, Secret, atau Redirect URI belum diset di Vercel Environment Variables.");
+        }
 
         $this->client->setClientId($clientId); 
         $this->client->setClientSecret($clientSecret);
@@ -26,7 +35,7 @@ class GoogleAuthController
         $this->client->addScope("email");
         $this->client->addScope("profile");
 
-        // PERBAIKAN: Gunakan Singleton
+        // Gunakan Singleton Database
         $this->db = Database::getInstance()->getConnection();
     }
 
@@ -43,6 +52,7 @@ class GoogleAuthController
             $token = $this->client->fetchAccessTokenWithAuthCode($_GET['code']);
             
             if(isset($token['error'])){
+                // Redirect ke login jika gagal/cancel
                 header("Location: index.php?action=login");
                 exit;
             }
@@ -65,6 +75,7 @@ class GoogleAuthController
 
     private function handleUser($name, $email, $googleId)
     {
+        // Cek User
         $query = "SELECT * FROM users WHERE email = :email LIMIT 1";
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(":email", $email);
@@ -74,12 +85,14 @@ class GoogleAuthController
         if ($user) {
             $userId = $user->id;
             $role = $user->role;
+            // Update Google ID jika kosong
             if (empty($user->google_id)) {
                 $upd = $this->db->prepare("UPDATE users SET google_id = :gid WHERE id = :id");
                 $upd->execute(['gid' => $googleId, 'id' => $userId]);
             }
         } else {
-            $ins = "INSERT INTO users (name, email, role, google_id) VALUES (:name, :email, 'customer', :gid)";
+            // Register Baru
+            $ins = "INSERT INTO users (name, email, role, google_id, password) VALUES (:name, :email, 'customer', :gid, '')";
             $stmt = $this->db->prepare($ins);
             $stmt->execute(['name' => $name, 'email' => $email, 'gid' => $googleId]);
             $userId = $this->db->lastInsertId();
