@@ -12,29 +12,24 @@ class RoomController
 
     public function __construct()
     {
-        // 1. Cek Session & Role Admin
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
 
-        // Kalau belum login ATAU bukan admin, tendang keluar
         if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
             header("Location: index.php?action=login");
             exit();
         }
 
-        // 2. Siapkan Model
-        $database = new Database();
-        $this->db = $database->getConnection();
+        // PERBAIKAN: Gunakan Singleton
+        $this->db = Database::getInstance()->getConnection();
         $this->roomType = new RoomType($this->db);
     }
 
-    // Halaman Utama List Kamar
     public function index()
     {
         $rooms = $this->roomType->getAll();
         
-        // Data dikirim ke View
         $data = [
             'title' => 'Kelola Tipe Kamar',
             'rooms' => $rooms
@@ -43,14 +38,12 @@ class RoomController
         require_once __DIR__ . '/../Views/admin/rooms/index.php';
     }
 
-    // Halaman Form Tambah
     public function create()
     {
         $data = ['title' => 'Tambah Tipe Kamar'];
         require_once __DIR__ . '/../Views/admin/rooms/create.php';
     }
 
-    // Proses Simpan Data
     public function store()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -59,7 +52,6 @@ class RoomController
             $this->roomType->price = $_POST['price'];
 
             if ($this->roomType->create()) {
-                // Redirect balik ke index kalau sukses
                 header("Location: index.php?action=rooms");
             } else {
                 echo "Gagal menyimpan data.";
@@ -82,7 +74,6 @@ class RoomController
         require_once __DIR__ . '/../Views/admin/rooms/edit.php';
     }
 
-    // Proses Update ke Database
     public function updateProcess()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -99,7 +90,6 @@ class RoomController
         }
     }
 
-    // Proses Hapus
     public function delete()
     {
         $id = $_GET['id'] ?? null;

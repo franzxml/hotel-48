@@ -1,35 +1,24 @@
 <?php
-
 namespace App\Controllers;
 
-use App\Config\Database;
+use App\Repositories\BookingRepository;
 use App\Models\Booking;
+use App\Exceptions\ValidationException;
 use Dompdf\Dompdf; 
 use Dompdf\Options;
 
-class BookingController
-{
-    private $db;
-    private $booking;
+class BookingController {
+    private $bookingRepo;
 
-    public function __construct()
-    {
-        if (session_status() == PHP_SESSION_NONE) {
-            session_start();
-        }
-        
-        $database = new Database();
-        $this->db = $database->getConnection();
-        $this->booking = new Booking($this->db);
+    public function __construct(BookingRepository $repo) {
+        if (session_status() == PHP_SESSION_NONE) session_start();
+        $this->bookingRepo = $repo;
     }
 
-    // 1. Tampilkan Halaman Cari
-    public function index()
-    {
-        
+    // --- FITUR CUSTOMER ---
 
+    public function index() {
         if (!isset($_SESSION['user_id'])) {
-            // TWEAK: Kirim pesan 'auth_required'
             header("Location: index.php?action=login&msg=auth_required");
             exit();
         }
@@ -46,11 +35,7 @@ class BookingController
         require_once __DIR__ . '/../Views/customer/search.php';
     }
 
-    // 2. Proses Cari Kamar
-    public function search()
-    {
-        
-
+    public function search() {
         if (!isset($_SESSION['user_id'])) {
             header("Location: index.php?action=login&msg=auth_required");
             exit();
@@ -60,7 +45,7 @@ class BookingController
         $checkOut = $_GET['check_out'] ?? '';
 
         if ($checkIn && $checkOut) {
-            $availableRooms = $this->booking->getAvailableRooms($checkIn, $checkOut);
+            $availableRooms = $this->bookingRepo->getAvailableRooms($checkIn, $checkOut);
             
             $data = [
                 'title' => 'Hasil Pencarian',
@@ -74,54 +59,52 @@ class BookingController
         }
     }
 
-    // 3. Proses Booking
-    public function book()
-    {
-        
-
+    public function book() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $roomId = $_POST['room_id'];
-            $price = $_POST['price'];
-            $checkIn = $_POST['check_in'];
-            $checkOut = $_POST['check_out'];
+            try {
+                $booking = new Booking();
+                // Set data via Setter / Magic Method dari BaseModel
+                $booking->setUserId($_SESSION['user_id']);
+                $booking->setRoomId($_POST['room_id']);
+                $booking->check_in = $_POST['check_in'];
+                $booking->check_out = $_POST['check_out'];
+                
+                $d1 = new \DateTime($_POST['check_in']);
+                $d2 = new \DateTime($_POST['check_out']);
+                $days = $d1->diff($d2)->days ?: 1;
+                $booking->total_price = $_POST['price'] * $days;
 
-            $d1 = new \DateTime($checkIn);
-            $d2 = new \DateTime($checkOut);
-            $interval = $d1->diff($d2);
-            $days = $interval->days;
-            if ($days < 1) $days = 1;
+                $newId = $this->bookingRepo->create($booking);
+                
+                if ($newId) {
+                    header("Location: index.php?action=payment&booking_id=" . $newId);
+                    exit();
+                } else {
+                    throw new ValidationException("Gagal membuat pesanan.");
+                }
 
-            $this->booking->user_id = $_SESSION['user_id'];
-            $this->booking->room_id = $roomId;
-            $this->booking->check_in = $checkIn;
-            $this->booking->check_out = $checkOut;
-            $this->booking->total_price = $price * $days;
-
-            if ($this->booking->create()) {
-                $newBookingId = $this->booking->id;
-                header("Location: index.php?action=payment&booking_id=" . $newBookingId);
-                exit();
-            } else {
-                echo "Gagal Booking. Silakan coba lagi.";
+            } catch (\Exception $e) {
+                echo "Terjadi kesalahan: " . $e->getMessage();
             }
         }
     }
 
-    // 4. Lihat Pesanan Saya
-    public function history()
-    {
+    // METHOD YANG HILANG SEBELUMNYA (FIXED)
+    
+    public function history() {
         if (!isset($_SESSION['user_id'])) {
             header("Location: index.php?action=login");
             exit();
         }
 
-        $bookings = $this->booking->getByUser($_SESSION['user_id']);
+        // Panggil Repository
+        $bookings = $this->bookingRepo->getByUser($_SESSION['user_id']);
+        
         $data = ['title' => 'Pesanan Saya', 'bookings' => $bookings];
         require_once __DIR__ . '/../Views/customer/history.php';
     }
 
-    public function downloadInvoice()
-    {
+    public function downloadInvoice() {
         if (!isset($_SESSION['user_id'])) {
             header("Location: index.php?action=login");
             exit();
@@ -130,12 +113,14 @@ class BookingController
         $id = $_GET['id'] ?? null;
         if (!$id) die("ID Booking tidak ditemukan.");
 
-        $booking = $this->booking->getDetailById($id);
+        // Panggil Repository
+        $booking = $this->bookingRepo->getDetailById($id);
 
-        if ($booking->user_id != $_SESSION['user_id']) {
+        if (!$booking || $booking->user_id != $_SESSION['user_id']) {
             die("Anda tidak berhak mengakses invoice ini.");
         }
 
+        // Generate HTML Invoice
         $html = '
         <html>
         <head>
@@ -198,27 +183,30 @@ class BookingController
         $dompdf->stream("invoice_hotel48_" . $id . ".pdf", ["Attachment" => true]);
     }
 
-    public function adminList()
-    {
+    // --- FITUR ADMIN ---
+
+    public function adminList() {
         if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
             header("Location: index.php?action=login");
             exit();
         }
 
-        $bookings = $this->booking->getAllForAdmin();
+        // Panggil Repository
+        $bookings = $this->bookingRepo->getAllForAdmin();
+        
         $data = ['title' => 'Laporan Semua Pesanan', 'bookings' => $bookings];
         require_once __DIR__ . '/../Views/admin/bookings/index.php';
     }
 
-    public function delete()
-    {
+    public function delete() {
         if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
             header("Location: index.php?action=login");
             exit();
         }
         $id = $_GET['id'] ?? null;
         if ($id) {
-            $this->booking->delete($id);
+            // Panggil Repository
+            $this->bookingRepo->delete($id);
         }
         header("Location: index.php?action=admin_bookings");
         exit();

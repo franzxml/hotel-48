@@ -173,7 +173,7 @@
             <p class="auth-subtitle">Masuk untuk melanjutkan reservasi Anda.</p>
         <?php endif; ?>
 
-        <form action="index.php?action=login_process" method="POST">
+        <form id="loginForm" action="index.php?action=login_process" method="POST">
             
             <?php if(isset($_GET['msg']) && $_GET['msg'] == 'auth_required'): ?>
                 <input type="hidden" name="redirect_to" value="booking">
@@ -218,6 +218,7 @@
 </div>
 
 <script>
+    // 1. FUNGSI TOGGLE PASSWORD
     function togglePassword() {
         const passwordInput = document.getElementById('passwordInput');
         const toggleIcon = document.getElementById('togglePasswordBtn');
@@ -231,4 +232,22 @@
             toggleIcon.classList.add('bi-eye-slash');
         }
     }
+
+    // 2. VALIDASI FORMULIR (Frontend Validation)
+    document.getElementById('loginForm').addEventListener('submit', function(event) {
+        const passwordInput = document.getElementById('passwordInput');
+        const passwordValue = passwordInput.value;
+
+        // Cek jika password kurang dari 6 karakter
+        if (passwordValue.length < 6) {
+            // Hentikan pengiriman form
+            event.preventDefault();
+            
+            // Tampilkan notifikasi
+            alert('Perhatian: Kata Sandi harus terdiri dari minimal 6 karakter.');
+            
+            // Fokuskan kursor kembali ke input password
+            passwordInput.focus();
+        }
+    });
 </script>

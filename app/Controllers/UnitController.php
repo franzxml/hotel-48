@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Controllers; // <--- Namespace Controller
+namespace App\Controllers;
 
 use App\Config\Database;
-use App\Models\Unit;      // <--- Panggil Model yang baru kita benerin di atas
+use App\Models\Unit;
 use App\Models\RoomType;
 
-class UnitController      // <--- Nama Class harus UnitController
+class UnitController
 {
     private $db;
     private $unit;
@@ -16,14 +16,13 @@ class UnitController      // <--- Nama Class harus UnitController
     {
         if (session_status() == PHP_SESSION_NONE) session_start();
         
-        // Cek Login Admin
         if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
             header("Location: index.php?action=login");
             exit();
         }
 
-        $database = new Database();
-        $this->db = $database->getConnection();
+        // PERBAIKAN: Gunakan Singleton
+        $this->db = Database::getInstance()->getConnection();
         $this->unit = new Unit($this->db);
         $this->roomType = new RoomType($this->db);
     }
@@ -73,7 +72,6 @@ class UnitController      // <--- Nama Class harus UnitController
         if ($id) {
             $this->unit->toggleStatus($id);
         }
-        // Balik lagi ke halaman tabel
         header("Location: index.php?action=units");
     }
 }

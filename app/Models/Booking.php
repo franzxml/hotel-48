@@ -1,125 +1,41 @@
 <?php
-
 namespace App\Models;
+use App\Traits\Timestampable;
 
-use PDO;
+class Booking {
+    use Timestampable; // Menggunakan Trait
 
-class Booking
-{
-    private $conn;
-    private $table = "bookings";
+    // Enkapsulasi: Property protected
+    protected $id;
+    protected $user_id;
+    protected $room_id;
+    protected $check_in;
+    protected $check_out;
+    protected $total_price;
+    protected $status;
 
-    public $id;
-    public $user_id;
-    public $room_id;
-    public $check_in;
-    public $check_out;
-    public $total_price;
-    public $status;
+    // Getter dan Setter (Contoh sebagian)
+    public function getId() { return $this->id; }
+    public function setId($id) { $this->id = $id; }
 
-    public function __construct($db)
-    {
-        $this->conn = $db;
-    }
+    public function setUserId($id) { $this->user_id = $id; }
+    public function getUserId() { return $this->user_id; }
 
-    // 1. FUNGSI CEK KETERSEDIAAN (The Magic Logic)
-    public function getAvailableRooms($checkIn, $checkOut)
-    {
-        // Query ini mencari kamar yang TIDAK ada di daftar booking pada tanggal tersebut
-        // Logic: (ExistingCheckIn <= NewCheckOut) AND (ExistingCheckOut >= NewCheckIn)
-        
-        $query = "SELECT r.id, r.room_number, rt.type_name, rt.price, rt.description 
-                  FROM rooms r
-                  JOIN room_types rt ON r.room_type_id = rt.id
-                  WHERE r.status = 'available' 
-                  AND r.id NOT IN (
-                      SELECT room_id FROM bookings 
-                      WHERE (check_in <= :check_out AND check_out >= :check_in)
-                      AND status != 'cancelled'
-                  )";
-
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":check_in", $checkIn);
-        $stmt->bindParam(":check_out", $checkOut);
-        
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
-    }
-
-    // 2. FUNGSI SIMPAN PESANAN
-    public function create()
-    {
-        $query = "INSERT INTO " . $this->table . " 
-                  SET user_id=:user_id, room_id=:room_id, check_in=:check_in, 
-                      check_out=:check_out, total_price=:total_price, status='pending'";
-        
-        $stmt = $this->conn->prepare($query);
-
-        $stmt->bindParam(":user_id", $this->user_id);
-        $stmt->bindParam(":room_id", $this->room_id);
-        $stmt->bindParam(":check_in", $this->check_in);
-        $stmt->bindParam(":check_out", $this->check_out);
-        $stmt->bindParam(":total_price", $this->total_price);
-
-        if ($stmt->execute()) {
-            // Ambil ID booking yang baru dibuat (untuk pembayaran nanti)
-            $this->id = $this->conn->lastInsertId();
-            return true;
+    public function setRoomId($id) { $this->room_id = $id; }
+    public function getRoomId() { return $this->room_id; }
+    
+    // ... Setter/Getter untuk properti lain ...
+    
+    // Magic method untuk kompabilitas View (akan dijelaskan di solusi error)
+    public function __get($property) {
+        if (property_exists($this, $property)) {
+            return $this->$property;
         }
-        return false;
     }
-
-    // 3. FUNGSI AMBIL HISTORY PESANAN (Per User)
-    public function getByUser($userId)
-    {
-        $query = "SELECT b.*, r.room_number, rt.type_name 
-                  FROM bookings b
-                  JOIN rooms r ON b.room_id = r.id
-                  JOIN room_types rt ON r.room_type_id = rt.id
-                  WHERE b.user_id = :user_id 
-                  ORDER BY b.created_at DESC";
-        
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":user_id", $userId);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
-    }
-
-    public function getDetailById($id)
-    {
-        $query = "SELECT b.*, u.name as guest_name, u.email, r.room_number, rt.type_name, rt.price 
-                  FROM bookings b
-                  JOIN users u ON b.user_id = u.id
-                  JOIN rooms r ON b.room_id = r.id
-                  JOIN room_types rt ON r.room_type_id = rt.id
-                  WHERE b.id = :id LIMIT 1";
-        
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":id", $id);
-        $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_OBJ);
-    }
-
-    public function getAllForAdmin()
-    {
-        $query = "SELECT b.*, u.name as guest_name, r.room_number, rt.type_name 
-                  FROM bookings b
-                  JOIN users u ON b.user_id = u.id
-                  JOIN rooms r ON b.room_id = r.id
-                  JOIN room_types rt ON r.room_type_id = rt.id
-                  ORDER BY b.created_at DESC";
-        
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
-    }
-    public function delete($id)
-    {
-        // Karena ada Foreign Key Cascade di SQL awal kita, 
-        // menghapus booking otomatis menghapus data di tabel payments juga.
-        $query = "DELETE FROM bookings WHERE id = :id";
-        $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(":id", $id);
-        return $stmt->execute();
+    
+    public function __set($property, $value) {
+        if (property_exists($this, $property)) {
+            $this->$property = $value;
+        }
     }
 }

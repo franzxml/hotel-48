@@ -15,8 +15,6 @@ class GoogleAuthController
     {
         $this->client = new Client();
         
-        // --- KONFIGURASI GOOGLE ---
-        // Ambil dari Environment Variable (Settingan Vercel / .env)
         $clientId = getenv('GOOGLE_CLIENT_ID') ?: $_ENV['GOOGLE_CLIENT_ID'];
         $clientSecret = getenv('GOOGLE_CLIENT_SECRET') ?: $_ENV['GOOGLE_CLIENT_SECRET'];
         $redirectUri = getenv('GOOGLE_REDIRECT_URI') ?: $_ENV['GOOGLE_REDIRECT_URI'];
@@ -28,8 +26,8 @@ class GoogleAuthController
         $this->client->addScope("email");
         $this->client->addScope("profile");
 
-        $database = new Database();
-        $this->db = $database->getConnection();
+        // PERBAIKAN: Gunakan Singleton
+        $this->db = Database::getInstance()->getConnection();
     }
 
     public function login()
@@ -67,7 +65,6 @@ class GoogleAuthController
 
     private function handleUser($name, $email, $googleId)
     {
-        // Cek User Lama
         $query = "SELECT * FROM users WHERE email = :email LIMIT 1";
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(":email", $email);
@@ -77,13 +74,11 @@ class GoogleAuthController
         if ($user) {
             $userId = $user->id;
             $role = $user->role;
-            // Update Google ID jika belum ada
             if (empty($user->google_id)) {
                 $upd = $this->db->prepare("UPDATE users SET google_id = :gid WHERE id = :id");
                 $upd->execute(['gid' => $googleId, 'id' => $userId]);
             }
         } else {
-            // Register User Baru
             $ins = "INSERT INTO users (name, email, role, google_id) VALUES (:name, :email, 'customer', :gid)";
             $stmt = $this->db->prepare($ins);
             $stmt->execute(['name' => $name, 'email' => $email, 'gid' => $googleId]);

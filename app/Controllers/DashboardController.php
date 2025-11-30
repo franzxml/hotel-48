@@ -6,22 +6,22 @@ class DashboardController
 {
     public function __construct()
     {
-        // 1. Mulai session di setiap method
+        // 1. Mulai session jika belum mulai
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
 
         // 2. PROTEKSI: Jika belum login, redirect ke login page
         if (!isset($_SESSION['user_id'])) {
-            header("Location: /hotel_48/public/index.php?action=login");
+            // PERBAIKAN: Gunakan path relatif 'index.php', jangan '/hotel_48/public/...'
+            // Ini agar aman dijalankan di server manapun (Localhost, Laragon, Vercel)
+            header("Location: index.php?action=login"); 
             exit();
         }
     }
 
     public function index()
     {
-        // Pastikan tidak ada echo di sini!
-        
         $role = $_SESSION['user_role'];
         $userName = $_SESSION['user_name'];
 

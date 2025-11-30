@@ -1,51 +1,41 @@
 <?php
-
 namespace App\Config;
 
 use PDO;
 use PDOException;
+use App\Exceptions\DatabaseException;
 
-class Database
-{
-    private $host;
-    private $db_name;
-    private $username;
-    private $password;
-    private $port;
+class Database {
+    private static $instance = null;
+    private $conn;
     
-    // PERBAIKAN: Deklarasikan properti $conn agar tidak Deprecated di PHP 8.2+
-    private $conn; 
+    // Host dsb diambil dari env nanti
+    private $host = 'localhost'; 
+    private $db_name = 'db_hotel48';
+    private $username = 'root';
+    private $password = '';
 
-    public function getConnection()
-    {
-        $this->conn = null;
-
-        // BACA DARI ENVIRONMENT VARIABLE
-        $this->host = getenv('DB_HOST') ?: 'localhost';
-        $this->db_name = getenv('DB_NAME') ?: 'db_hotel48';
-        $this->username = getenv('DB_USER') ?: 'root';
-        $this->password = getenv('DB_PASS') ?: '';
-        $this->port = getenv('DB_PORT') ?: '3306';
-
+    // Constructor Private agar tidak bisa di-new dari luar
+    private function __construct() {
         try {
-            // Tambahkan Port di DSN
-            $dsn = "mysql:host=" . $this->host . ";port=" . $this->port . ";dbname=" . $this->db_name;
-            
-            $options = [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
-                // Opsi SSL untuk database cloud (Aiven/TiDB)
-                PDO::MYSQL_ATTR_SSL_CA => true, 
-                PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT => false,
-            ];
-
-            $this->conn = new PDO($dsn, $this->username, $this->password, $options);
-            
-        } catch (PDOException $exception) {
-            // PERBAIKAN: Matikan script dan tampilkan error biar kelihatan di Vercel
-            die("❌ Gagal Konek Database: " . $exception->getMessage());
+            $dsn = "mysql:host=" . $this->host . ";dbname=" . $this->db_name;
+            $this->conn = new PDO($dsn, $this->username, $this->password);
+            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_OBJ);
+        } catch(PDOException $e) {
+            throw new DatabaseException("Koneksi gagal: " . $e->getMessage());
         }
+    }
 
+    // Metode Statis untuk mengambil instance tunggal
+    public static function getInstance() {
+        if (self::$instance == null) {
+            self::$instance = new Database();
+        }
+        return self::$instance;
+    }
+
+    public function getConnection() {
         return $this->conn;
     }
 }

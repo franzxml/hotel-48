@@ -12,8 +12,9 @@ class AuthController
 
     public function __construct()
     {
-        $database = new Database();
-        $this->db = $database->getConnection();
+        // PERBAIKAN: Gunakan Singleton getInstance(), bukan new Database()
+        // Ini menjaga kompatibilitas dengan refactoring sebelumnya
+        $this->db = Database::getInstance()->getConnection();
         $this->user = new User($this->db);
     }
 
@@ -30,15 +31,24 @@ class AuthController
 
         $email = $_POST['email'] ?? '';
         $password = $_POST['password'] ?? '';
-        // TWEAK: Tangkap destinasi redirect
         $redirectTo = $_POST['redirect_to'] ?? 'dashboard';
+
+        // --- FITUR BARU: Validasi Panjang Password (Backend) ---
+        // Ini melindungi jika JavaScript dimatikan di browser user
+        if (strlen($password) < 6) {
+            echo "<script>
+                    alert('Gagal Masuk: Kata sandi minimal 6 karakter.');
+                    window.location.href='index.php?action=login';
+                  </script>";
+            exit();
+        }
+        // -------------------------------------------------------
 
         if ($this->user->login($email, $password)) {
             $_SESSION['user_id'] = $this->user->id;
             $_SESSION['user_name'] = $this->user->name;
             $_SESSION['user_role'] = $this->user->role;
 
-            // LOGIKA REDIRECT PINTAR
             if ($redirectTo === 'booking') {
                 header("Location: index.php?action=booking");
             } else {
@@ -47,7 +57,7 @@ class AuthController
             exit();
         } else {
             echo "<script>
-                    alert('Login Gagal! Email atau Password Salah.');
+                    alert('Login Gagal! Email atau Kata Sandi Salah.');
                     window.location.href='index.php?action=login';
                   </script>";
         }
@@ -87,6 +97,7 @@ class AuthController
             exit;
         }
 
+        // Validasi password saat Register (sudah ada sebelumnya)
         if (strlen($password) < 6) {
             echo "<script>alert('Password minimal 6 karakter.'); window.history.back();</script>";
             exit;

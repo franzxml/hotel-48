@@ -13,8 +13,9 @@ class PaymentController
     public function __construct()
     {
         if (session_status() == PHP_SESSION_NONE) session_start();
-        $database = new Database();
-        $this->db = $database->getConnection();
+        
+        // PERBAIKAN: Gunakan Singleton
+        $this->db = Database::getInstance()->getConnection();
     }
 
     public function index()
@@ -63,7 +64,6 @@ class PaymentController
             $stmt = $this->db->prepare($sql);
             $stmt->execute(['bid' => $bookingId, 'amt' => $amount, 'prov' => $result['provider']]);
 
-            // TWEAK: Redirect Bersih dengan Parameter Sukses
             header("Location: index.php?action=my_bookings&status=payment_success");
             exit();
         }
