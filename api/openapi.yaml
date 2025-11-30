@@ -1,0 +1,169 @@
+openapi: 3.0.0
+info:
+  title: Hotel 48 REST API
+  description: Dokumentasi API untuk Sistem Reservasi Hotel 48 (CBL Project).
+  version: 1.0.0
+  contact:
+    email: email@example.com
+
+servers:
+  - url: http://localhost/hotel_48/public/index.php?action=
+    description: Server Lokal (Laragon/XAMPP)
+  - url: https://hotel-48-app.vercel.app/index.php?action=
+    description: Production Server (Vercel)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
+
+paths:
+  # --- PUBLIC ENDPOINTS ---
+  api_login:
+    post:
+      summary: Login Pengguna
+      security: [] # Public access
+      description: Otentikasi user untuk mendapatkan Token JWT.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: budi@gmail.com
+                password:
+                  type: string
+                  example: password123
+      responses:
+        '200':
+          description: Login Berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  message:
+                    type: string
+                  token:
+                    type: string
+                    description: JWT Token untuk akses endpoint privat
+                  user:
+                    type: object
+        '401':
+          description: Kredensial Salah
+
+  api_rooms:
+    get:
+      summary: Lihat Semua Tipe Kamar
+      security: []
+      description: Mengambil daftar tipe kamar beserta harga dan fasilitas.
+      responses:
+        '200':
+          description: Berhasil mengambil data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        type_name:
+                          type: string
+                        price:
+                          type: number
+
+  api_search:
+    get:
+      summary: Cari Ketersediaan Kamar
+      security: []
+      parameters:
+        - in: query
+          name: check_in
+          schema:
+            type: string
+            format: date
+          required: true
+          description: Tanggal Masuk (YYYY-MM-DD)
+        - in: query
+          name: check_out
+          schema:
+            type: string
+            format: date
+          required: true
+          description: Tanggal Keluar (YYYY-MM-DD)
+      responses:
+        '200':
+          description: Daftar kamar yang tersedia
+        '400':
+          description: Parameter tanggal kurang
+
+  # --- PROTECTED ENDPOINTS ---
+  api_booking_create:
+    post:
+      summary: Buat Pesanan Baru
+      description: Membuat reservasi kamar baru (Wajib Token).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - room_id
+                - check_in
+                - check_out
+                - price_per_night
+              properties:
+                room_id:
+                  type: integer
+                check_in:
+                  type: string
+                  format: date
+                check_out:
+                  type: string
+                  format: date
+                price_per_night:
+                  type: number
+      responses:
+        '201':
+          description: Booking Berhasil Dibuat
+        '401':
+          description: Token Tidak Valid / Kadaluarsa
+
+  api_history:
+    get:
+      summary: Riwayat Pesanan Saya
+      description: Mengambil daftar transaksi milik user yang sedang login.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Data ditemukan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: integer
+                  data:
+                    type: array
