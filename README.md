@@ -55,7 +55,7 @@ Hotel 48 merupakan sistem informasi manajemen reservasi hotel berbasis *web* yan
 
 ## Domain
 Website dapat diakses melalui (Server Production/Vercel):
-[https://hotel-48-app.vercel.app/](https://hotel-48-app.vercel.app/)
+[https://hotel-48-seven.vercel.app/](https://hotel-48-seven.vercel.app/)
 
 ---
 Dikembangkan oleh: @franzxml & Kings-Bilbil
