@@ -1,0 +1,10 @@
+#!/bin/bash
+# Template script migrasi manual menggunakan psql client
+# Pastikan Anda telah menginstall postgresql-client
+# Ganti URL di bawah dengan Connection String Anda
+# ATAU set environment variable DATABASE_URL sebelum menjalankan script ini
+
+DB_URL=${DATABASE_URL:-"postgresql://user:password@host:port/dbname?sslmode=require"}
+
+echo "Menggunakan PSQL untuk migrasi ke $DB_URL..."
+psql "$DB_URL" -f database/schema.sql

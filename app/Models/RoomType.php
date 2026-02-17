@@ -31,7 +31,7 @@ class RoomType
     // 2. CREATE (Tambah Data Baru)
     public function create()
     {
-        $query = "INSERT INTO " . $this->table . " SET type_name=:type_name, description=:description, price=:price";
+        $query = "INSERT INTO " . $this->table . " (type_name, description, price) VALUES (:type_name, :description, :price)";
         $stmt = $this->conn->prepare($query);
 
         // Sanitasi

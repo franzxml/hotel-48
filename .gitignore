@@ -1,3 +1,38 @@
+# Composer Dependencies
 /vendor
-.env         
+
+# Environment Variables (SENSITIVE)
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# System Files
 .DS_Store
+Thumbs.db
+.classpath
+.project
+.settings/
+
+# Temporary & Log Files
+*.log
+tmp/
+temp/
+debug.log
+
+# IDE & Editor Settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+
+# Project Specific
+test_db.php
+# Contains hardcoded credentials for local migration helper
+database/run_migration.sh 
+
+# Vercel
+.vercel

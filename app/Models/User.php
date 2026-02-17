@@ -59,8 +59,8 @@ class User
     // 3. REGISTER USER BARU (Update: Menerima Parameter)
     public function register($name, $email, $password)
     {
-        $query = "INSERT INTO " . $this->table_name . " 
-                  SET name=:name, email=:email, password=:password, role='customer'";
+        $query = "INSERT INTO " . $this->table_name . " (name, email, password, role) 
+                  VALUES (:name, :email, :password, 'customer')";
 
         $stmt = $this->conn->prepare($query);
 

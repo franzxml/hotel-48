@@ -35,7 +35,7 @@ class Unit
     // 2. CREATE
     public function create()
     {
-        $query = "INSERT INTO " . $this->table . " SET room_type_id=:room_type_id, room_number=:room_number, status='available'";
+        $query = "INSERT INTO " . $this->table . " (room_type_id, room_number, status) VALUES (:room_type_id, :room_number, 'available')";
         $stmt = $this->conn->prepare($query);
 
         $this->room_number = htmlspecialchars(strip_tags($this->room_number));
@@ -60,7 +60,7 @@ class Unit
     {
         // Logika SQL: Jika 'available' jadi 'maintenance', dan sebaliknya
         $query = "UPDATE " . $this->table . " 
-                  SET status = IF(status='available', 'maintenance', 'available') 
+                  SET status = CASE WHEN status='available' THEN 'maintenance' ELSE 'available' END 
                   WHERE id = :id";
         
         $stmt = $this->conn->prepare($query);
